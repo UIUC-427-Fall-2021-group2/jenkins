@@ -92,7 +92,7 @@ import org.kohsuke.stapler.interceptor.RequirePOST;
  */
 @SuppressWarnings("unchecked") // AbstractItem.getParent does not correctly override; scheduleBuild2 inherently untypable
 public abstract class ParameterizedJobMixIn<JobT extends Job<JobT, RunT> & ParameterizedJobMixIn.ParameterizedJob<JobT, RunT> & Queue.Task, RunT extends Run<JobT, RunT> & Queue.Executable> {
-    
+
     protected abstract JobT asJob();
 
     /** @see BuildableItem#scheduleBuild() */
@@ -170,7 +170,7 @@ public abstract class ParameterizedJobMixIn<JobT extends Job<JobT, RunT> & Param
         /* Scan for all parameter with an associated default values */
         for(ParameterDefinition paramDefinition : paramDefProp.getParameterDefinitions())
         {
-           ParameterValue defaultValue  = paramDefinition.getDefaultParameterValue();
+            ParameterValue defaultValue  = paramDefinition.getDefaultParameterValue();
 
             if(defaultValue != null)
                 defValues.add(defaultValue);
@@ -193,6 +193,11 @@ public abstract class ParameterizedJobMixIn<JobT extends Job<JobT, RunT> & Param
     public final void doBuild(StaplerRequest req, StaplerResponse rsp, @QueryParameter TimeDuration delay) throws IOException, ServletException {
         if (delay == null) {
             delay=new TimeDuration(TimeUnit.MILLISECONDS.convert(asJob().getQuietPeriod(), TimeUnit.SECONDS));
+        }
+
+        if (asJob().isDisabled())
+        {
+            throw HttpResponses.forwardToPreviousPage();
         }
 
         if (!asJob().isBuildable()) {
@@ -231,6 +236,11 @@ public abstract class ParameterizedJobMixIn<JobT extends Job<JobT, RunT> & Param
         BuildAuthorizationToken.checkPermission(asJob(), asJob().getAuthToken(), req, rsp);
 
         ParametersDefinitionProperty pp = asJob().getProperty(ParametersDefinitionProperty.class);
+        if (asJob().isDisabled())
+        {
+            throw HttpResponses.forwardToPreviousPage();
+        }
+
         if (!asJob().isBuildable()) {
             throw HttpResponses.error(SC_CONFLICT, new IOException(asJob().getFullName() + " is not buildable!"));
         }
